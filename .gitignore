@@ -7,3 +7,4 @@ conf/geoip.metadb
 conf/cache.db
 
 logs
+.env

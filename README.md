@@ -1,23 +1,24 @@
-# Clash in Autodl
+# Clash in Container
+服务器一般都是容器, 容器中进行更好的科研. 
 
 ## 下载项目
 
 下载项目
 
 ```bash
-git clone https://github.com/qqqqqhsdhs/Clash-in-Autodl.git
+git clone -b clash-in-container https://github.com/zhuhu00/clash-for-linux.git
 ```
 
 进入到项目目录，编辑`.env`文件，修改变量`CLASH_URL`的值。
 
 ```bash
-cd Clash-in-Autodl
+cd clash-for-linux
 mv conf/template_raw.yaml conf/template.yaml
 cp .env.example .env
 vim .env
 ```
 
-![3.png](https://s2.loli.net/2024/06/20/S4t8ZlVjiOKuo7n.png)
+<!-- ![3.png](./image/3.jpg) -->
 
 CLASH_URL填写订阅地址，CLASH_SECRET可自行填写（例如“123456”）。填写后按“:wq”退出。
 
@@ -30,7 +31,7 @@ CLASH_URL填写订阅地址，CLASH_SECRET可自行填写（例如“123456”�
 - 进入项目目录
 
 ```bash
-cd clash-for-AutoDL
+cd clash-for-linux
 ```
 
 安装lsof
@@ -52,7 +53,7 @@ source ./start.sh
 - 检查服务端口
 
 ```bash
-lsof -i -P -n | grep LISTEN | grep -E ':6006|:789[0-9]'
+lsof -i -P -n | grep LISTEN | grep -E ':9090|:789[0-9]'
 ```
 
 ![1.jpg](./image/1.jpg)
@@ -71,34 +72,34 @@ lsof -i -P -n | grep LISTEN | grep -E ':6006|:789[0-9]'
 
 - 复制
 
-选中proxies，proxy-groups，rules并复制到Autodl的clash-for-AutoDL/conf/config.yaml中。
+选中**proxies，proxy-groups，rules**并复制到本地的**clash-for-linux/conf/config.yaml**中。
 
 ![3.jpg](./image/3.jpg)
 
 ![4.jpg](./image/4.jpg)
 
-从21行“proxies:”开始覆盖。
+从**“proxies:”开始覆盖**。
 
 - 修改
 
 在config.yaml第一行添加：
 
-```bash
+<!-- ```bash
 port: 7890 # HTTP代理端口
 socks-port: 7892 # SOCKS5代理端口
-```
-
+``` -->
+<!-- 
 注释：
 
 ```bash
 # mixed-port: 7890
-```
-
+``` -->
+<!-- 
 修改：
 
 ```bash
 external-controller: '127.0.0.1:9090' -> external-controller: '127.0.0.1:6006'
-```
+``` -->
 
 将config.yaml的内容复制到template.yaml，使其一致。
 
@@ -130,7 +131,7 @@ source ./health_check.sh
 验证是否能进入谷歌
 
 ```bash
-curl google.com
+curl -L google.com
 ```
 
 ![11.jpg](./image/11.jpg)
@@ -138,6 +139,8 @@ curl google.com
 此时已经成功配置。
 
 ## 更换节点
+
+- vscode 的端口转发, 可以
 
 - 方法一 （本人暂时连接失败）
 

@@ -1,0 +1,53 @@
+mixed-port: 7890
+allow-lan: true
+bind-address: '*'
+mode: rule
+log-level: info
+external-controller: '127.0.0.1:9090'
+external-ui: dashboard
+hosts:
+    mtalk.google.com: 108.177.125.188
+dns:
+    enable: true
+    ipv6: true
+    listen: '127.0.0.1:5334'
+    default-nameserver: [180.184.1.1, 119.29.29.29, 223.5.5.5]
+    enhanced-mode: fake-ip
+    fake-ip-range: 198.18.0.1/16
+    use-hosts: true
+    fake-ip-filter: ['*.n.n.srv.nintendo.net', +.stun.playstation.net, 'xbox.*.*.microsoft.com', '*.msftncsi.com', '*.msftconnecttest.com', WORKGROUP, '*.lan', 'stun.*.*.*', 'stun.*.*', time.windows.com, time.nist.gov, time.apple.com, time.asia.apple.com, '*.ntp.org.cn', '*.openwrt.pool.ntp.org', time1.cloud.tencent.com, time.ustc.edu.cn, pool.ntp.org, ntp.ubuntu.com, '*.*.xboxlive.com', speedtest.cros.wr.pvp.net, stun.services.mozilla1.com, ntp.nasa.gov]
+    nameserver-policy: { +.pphimalayanrt.com: 223.5.5.5, st.dl.eccdnx.com: 223.5.5.5, +.tmall.com: 223.5.5.5, +.taobao.com: 223.5.5.5, +.alicdn.com: 223.5.5.5, +.aliyun.com: 223.5.5.5, +.alipay.com: 223.5.5.5, +.alibaba.com: 223.5.5.5, +.qq.com: 119.29.29.29, +.tencent.com: 119.29.29.29, +.weixin.com: 119.29.29.29, +.qpic.cn: 119.29.29.29, +.jd.com: 119.29.29.29, +.bilibili.com: 119.29.29.29, +.hdslb.com: 119.29.29.29, +.163.com: 119.29.29.29, +.126.com: 119.29.29.29, +.126.net: 119.29.29.29, +.127.net: 119.29.29.29, +.netease.com: 119.29.29.29, +.baidu.com: 223.5.5.5, +.bdstatic.com: 223.5.5.5, +.bilivideo.+: 119.29.29.29, +.iqiyi.com: 119.29.29.29, +.douyinvod.com: 180.184.1.1, +.douyin.com: 180.184.1.1, +.douyincdn.com: 180.184.1.1, +.douyinpic.com: 180.184.1.1, +.feishu.cn: 180.184.1.1 }
+    nameserver: ['https://223.6.6.6/dns-query', 'https://120.53.53.53/dns-query', 'tls://223.5.5.5:853']
+
+# Proxies and proxy groups will be inserted here
+
+rules:
+    - 'DOMAIN-SUFFIX,copilot.microsoft.com,悠兔'
+    - 'DOMAIN-SUFFIX,steamcontent.com,DIRECT'
+    - 'DOMAIN-SUFFIX,steamstatic.com,DIRECT'
+    - 'DOMAIN-SUFFIX,steamserver.net,DIRECT'
+    - 'DOMAIN-SUFFIX,test.steampowered.com,DIRECT'
+    - 'DOMAIN-SUFFIX,api.steampowered.com,DIRECT'
+    - 'DOMAIN-SUFFIX,rmbgame.net,DIRECT'
+    - 'DOMAIN,steamcdn-a.akamaihd.net,DIRECT'
+    - 'DOMAIN-SUFFIX,cm.steampowered.com,DIRECT'
+    - 'IP-CIDR,45.121.184.0/24,DIRECT'
+    - 'IP-CIDR,103.10.124.0/23,DIRECT'
+    - 'IP-CIDR,103.28.54.0/24,DIRECT'
+    - 'IP-CIDR,146.66.152.0/24,DIRECT'
+    - 'IP-CIDR,146.66.155.0/24,DIRECT'
+    - 'IP-CIDR,153.254.86.0/24,DIRECT'
+    - 'IP-CIDR,155.133.224.0/22,DIRECT'
+    - 'IP-CIDR,155.133.230.0/24,DIRECT'
+    - 'IP-CIDR,155.133.232.0/23,DIRECT'
+    - 'IP-CIDR,155.133.234.0/24,DIRECT'
+    - 'IP-CIDR,155.133.236.0/22,DIRECT'
+    - 'IP-CIDR,155.133.240.0/21,DIRECT'
+    - 'IP-CIDR,155.133.248.0/22,DIRECT'
+    - 'IP-CIDR,155.133.252.0/23,DIRECT'
+    - 'IP-CIDR,155.133.254.0/24,DIRECT'
+    - 'IP-CIDR,162.254.192.0/21,DIRECT'
+    - 'IP-CIDR,185.25.182.0/23,DIRECT'
+    - 'IP-CIDR,208.78.164.0/22,DIRECT'
+    - 'GEOIP,CN,DIRECT'
+    - 'MATCH,悠兔'

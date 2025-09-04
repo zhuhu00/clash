@@ -13,7 +13,7 @@ git clone -b clash-in-container https://github.com/zhuhu00/clash-for-linux.git
 
 ```bash
 cd clash-for-linux
-mv conf/template_raw.yaml conf/template.yaml
+cp conf/template_raw.yaml conf/template.yaml
 cp .env.example .env
 vim .env
 ```

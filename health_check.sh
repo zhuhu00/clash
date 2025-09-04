@@ -8,6 +8,9 @@ echo "Clash for AutoDL 健康检查"
 echo "======================================"
 echo ""
 
+# 获取脚本所在目录的绝对路径
+SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -66,12 +69,12 @@ echo ""
 
 # 3. 检查配置文件
 echo "3. 检查配置文件"
-CONFIG_FILE="./conf/config.yaml"
+CONFIG_FILE="$SCRIPT_DIR/conf/config.yaml"
 if [ -f "$CONFIG_FILE" ]; then
     if [ -s "$CONFIG_FILE" ]; then
         # 检查 YAML 语法
-        if command -v ./bin/yq > /dev/null 2>&1; then
-            if ./bin/yq eval '.' "$CONFIG_FILE" > /dev/null 2>&1; then
+        if command -v "$SCRIPT_DIR/bin/yq" > /dev/null 2>&1; then
+            if "$SCRIPT_DIR/bin/yq" eval '.' "$CONFIG_FILE" > /dev/null 2>&1; then
                 check_status "配置文件语法" "PASS" "YAML 语法正确"
             else
                 check_status "配置文件语法" "FAIL" "YAML 语法错误"
@@ -108,8 +111,8 @@ else
 fi
 
 # 检查 .env 文件
-if [ -f "./.env" ]; then
-    source ./.env
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    source "$SCRIPT_DIR/.env"
     if [ -n "$CLASH_URL" ]; then
         check_status "订阅地址" "PASS" "已配置订阅地址"
     else
@@ -139,7 +142,7 @@ echo ""
 
 # 6. 日志检查
 echo "6. 检查日志文件"
-LOG_FILE="./logs/mihomo.log"
+LOG_FILE="$SCRIPT_DIR/logs/mihomo.log"
 if [ -f "$LOG_FILE" ]; then
     # 检查最近的错误
     RECENT_ERRORS=$(tail -n 100 "$LOG_FILE" | grep -i "error\|fail" | wc -l)
@@ -156,15 +159,15 @@ echo ""
 # 7. 安全检查
 echo "7. 安全检查"
 # 检查敏感文件
-if [ -f "./conf/clash_for_windows_config.yaml" ]; then
+if [ -f "$SCRIPT_DIR/conf/clash_for_windows_config.yaml" ]; then
     check_status "敏感配置文件" "FAIL" "发现包含敏感信息的配置文件"
 else
     check_status "敏感配置文件" "PASS" "未发现敏感配置文件"
 fi
 
 # 检查 git 状态
-if [ -d "./.git" ]; then
-    if git ls-files | grep -q "clash_for_windows_config.yaml"; then
+if [ -d "$SCRIPT_DIR/.git" ]; then
+    if (cd "$SCRIPT_DIR" && git ls-files) | grep -q "clash_for_windows_config.yaml"; then
         check_status "Git 追踪" "FAIL" "敏感文件被 Git 追踪"
     else
         check_status "Git 追踪" "PASS" "敏感文件未被 Git 追踪"
@@ -205,9 +208,9 @@ if [ $ERRORS -gt 0 ] || [ $WARNINGS -gt 0 ]; then
         echo ""
     fi
     
-    if [ -f "./conf/clash_for_windows_config.yaml" ]; then
+    if [ -f "$SCRIPT_DIR/conf/clash_for_windows_config.yaml" ]; then
         echo "4. 删除敏感配置文件："
-        echo "   rm ./conf/clash_for_windows_config.yaml"
+        echo "   rm $SCRIPT_DIR/conf/clash_for_windows_config.yaml"
         echo "   并从 Git 历史中完全删除"
         echo ""
     fi

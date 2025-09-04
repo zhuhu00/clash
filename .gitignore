@@ -9,3 +9,4 @@ conf/cache.db
 logs
 .env
 aa
+clash.pid

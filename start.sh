@@ -348,7 +348,7 @@ if_success() {
 unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
 
 # 从 .bashrc 中删除函数和相关行
-functions_to_remove=("proxy_on" "proxy_off" "shutdown_system")
+functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check")
 for func in "${functions_to_remove[@]}"; do
   sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" ~/.bashrc
 done
@@ -523,7 +523,7 @@ fi
 if [[ $Status -eq 0 ]]; then
     # Output Dashboard access address and Secret
     echo ''
-    echo -e "Clash 控制面板访问地址: http://<your_ip>:6006/ui"
+    echo -e "Clash 控制面板访问地址: http://<your_ip>:9090/ui"
     echo ''
 fi
 
@@ -556,7 +556,7 @@ function proxy_on() {
     export HTTPS_PROXY=http://127.0.0.1:$CLASH_PORT
     export NO_PROXY=127.0.0.1,localhost
     
-    if [ #is_quiet != "true" ]; then
+    if [ "$is_quiet" != "true" ]; then
         echo -e "${GREEN}[√] 已开启代理${NC}"
     fi
 }
@@ -567,15 +567,53 @@ function proxy_off() {
     
     unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
 
-    if [ #is_quiet != "true" ]; then
+    if [ "$is_quiet" != "true" ]; then
         echo -e "${RED}[×] 已关闭代理${NC}"
     fi
 }
 
 # 关闭系统函数
 function shutdown_system() {
-    echo "准备执行系统关闭脚本..."
-    $Server_Dir/shutdown.sh
+    echo -e "${RED}⚠️  警告：即将删除 Clash 服务！${NC}"
+    echo -e "${YELLOW}这将会：${NC}"
+    echo -e "  - 停止所有 Clash 相关进程"
+    echo -e "  - 清除代理环境变量"
+    echo -e "  - 从 ~/.bashrc 中移除相关函数"
+    echo -e "  - 删除配置文件和日志"
+    echo -e "  - 询问是否删除整个工作目录"
+    echo ""
+    
+    read -p "您确定要继续吗？(输入 'yes' 确认): " first_confirm
+    if [ "$first_confirm" != "yes" ]; then
+        echo -e "${GREEN}操作已取消${NC}"
+        return 0
+    fi
+    
+    echo -e "${RED}最后确认：这个操作无法撤销！${NC}"
+    read -p "请再次输入 'DELETE' 以确认删除: " second_confirm
+    if [ "$second_confirm" != "DELETE" ]; then
+        echo -e "${GREEN}操作已取消${NC}"
+        return 0
+    fi
+    
+    echo -e "${YELLOW}正在执行关闭脚本...${NC}"
+    if [ -f "$Server_Dir/shutdown.sh" ]; then
+        bash "$Server_Dir/shutdown.sh"
+    else
+        echo -e "${RED}错误：shutdown.sh 脚本不存在${NC}"
+        return 1
+    fi
+}
+
+# 健康检查函数
+function health_check() {
+    echo -e "${YELLOW}正在执行健康检查...${NC}"
+    if [ -f "$Server_Dir/health_check.sh" ]; then
+        bash "$Server_Dir/health_check.sh"
+    else
+        echo -e "${RED}错误：health_check.sh 脚本不存在${NC}"
+        return 1
+    fi
 }
 EOF
 
@@ -601,6 +639,7 @@ EOF" > /tmp/clash_functions
 
     echo -e "请执行以下命令启动系统代理: proxy_on"
     echo -e "若要临时关闭系统代理，请执行: proxy_off"
+    echo -e "若要检查服务健康状态，请执行: health_check"
     echo -e "若需要彻底删除，请调用: shutdown_system"
 
     # 询问用户是否要自动添加 proxy_on 命令

@@ -80,9 +80,9 @@ lsof -i -P -n | grep LISTEN | grep -E ':9090|:789[0-9]'
 
 从**“proxies:”开始覆盖**。
 
-- 修改
+<!-- - 修改 -->
 
-在config.yaml第一行添加：
+<!-- 在config.yaml第一行添加： -->
 
 <!-- ```bash
 port: 7890 # HTTP代理端口

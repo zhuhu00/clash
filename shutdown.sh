@@ -82,7 +82,7 @@ rm -rf "$Log_Dir"
 unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
 
 # 从 .bashrc 中删除函数和相关行
-functions_to_remove=("proxy_on" "proxy_off" "shutdown_system")
+functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check")
 for func in "${functions_to_remove[@]}"; do
   sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" ~/.bashrc
 done

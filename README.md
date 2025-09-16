@@ -1,5 +1,5 @@
 # Clash in Container
-服务器一般都是容器, 容器中进行更好的科研. 
+docker 容器中, 使用 clash, 包括 autodl 之类的
 
 ## 下载项目
 

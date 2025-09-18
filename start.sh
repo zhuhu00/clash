@@ -42,7 +42,6 @@ YQ_VERSION="v4.44.3"
 YQ_BINARY="$Server_Dir/bin/yq"
 log_file="logs/mihomo.log"
 Config_File="$Conf_Dir/config.yaml"
-CONVERTER_SCRIPT="$Server_Dir/converter.sh"
 
 # URL变量
 URL=${CLASH_URL:?Error: CLASH_URL variable is not set or empty}
@@ -137,10 +136,10 @@ check_yaml() {
         return 1
     fi
 
-    # 检查文件是否为base64编码的链接列表
-    if grep -q "^[A-Za-z0-9+/]*={0,2}$" "$file" && ! grep -q ':' "$file"; then
-        echo "检测到base64编码的代理链接列表，需要转换"
-        return 1
+    # 检查文件是否包含基本的clash配置结构
+    if grep -q -E "(proxies:|proxy-groups:|rules:)" "$file"; then
+        echo "检测到clash配置结构，格式正确"
+        return 0
     fi
 
     # 检查文件是否包含冒号（YAML特征）
@@ -149,33 +148,41 @@ check_yaml() {
         return 1
     fi
 
-    # 检查是否包含基本的clash配置结构
-    if grep -q -E "(proxies:|proxy-groups:|rules:)" "$file"; then
-        echo "检测到clash配置结构"
-        return 0
-    fi
-
     # 文件非空且包含冒号，视为可能是有效的YAML
+    echo "检测到YAML格式文件"
     return 0
 }
 
-# 使用自定义转换器转换配置
-use_custom_converter() {
-    echo -e "${YELLOW}使用自定义转换器进行配置转换...${NC}"
+# 下载Clash格式配置文件
+download_clash_config() {
+    local url="$1"
+    local output_file="$2"
     
-    if [ -f "$CONVERTER_SCRIPT" ]; then
-        # 使用自定义转换器
-        if bash "$CONVERTER_SCRIPT" "$Config_File" "$Config_File"; then
-            echo -e "${GREEN}自定义转换器转换成功${NC}"
-            return 0
-        else
-            echo -e "${RED}自定义转换器转换失败${NC}"
-            return 1
-        fi
-    else
-        echo -e "${RED}转换器脚本不存在: $CONVERTER_SCRIPT${NC}"
-        return 1
+    echo -e "${YELLOW}正在下载Clash配置文件...${NC}"
+    
+    # 使用curl下载，设置User-Agent为Clash客户端
+    if curl -fsSL --retry 3 --compressed \
+        -A "Clash-Downloader/1.0" \
+        -H "Accept: application/yaml, text/yaml, */*" \
+        -o "$output_file" \
+        "$url"; then
+        echo -e "${GREEN}配置文件下载成功${NC}"
+        return 0
     fi
+    
+    # 如果curl失败，尝试wget
+    echo -e "${YELLOW}curl下载失败，尝试使用wget...${NC}"
+    if $WGET_CMD \
+        --header="User-Agent: Clash-Downloader/1.0" \
+        --header="Accept: application/yaml, text/yaml, */*" \
+        -O "$output_file" \
+        "$url"; then
+        echo -e "${GREEN}使用wget下载成功${NC}"
+        return 0
+    fi
+    
+    echo -e "${RED}配置文件下载失败${NC}"
+    return 1
 }
 
 # 通用GitHub文件下载函数（支持镜像站点）
@@ -288,20 +295,29 @@ install_yq() {
     return 1
 }
 
-# 确保转换器脚本存在且可执行
-check_converter_script() {
-    if [ ! -f "$CONVERTER_SCRIPT" ]; then
-        echo -e "${RED}✗ 转换器脚本不存在: $CONVERTER_SCRIPT${NC}"
+# 验证配置文件完整性
+validate_config_file() {
+    local config_file="$1"
+    
+    echo -e "${YELLOW}验证配置文件完整性...${NC}"
+    
+    # 检查必要的配置段落
+    local required_sections=("proxies" "proxy-groups" "rules")
+    local missing_sections=()
+    
+    for section in "${required_sections[@]}"; do
+        if ! grep -q "^${section}:" "$config_file"; then
+            missing_sections+=("$section")
+        fi
+    done
+    
+    if [ ${#missing_sections[@]} -eq 0 ]; then
+        echo -e "${GREEN}✓ 配置文件结构完整${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ 配置文件缺少必要段落: ${missing_sections[*]}${NC}"
         return 1
     fi
-    
-    if [ ! -x "$CONVERTER_SCRIPT" ]; then
-        echo -e "${YELLOW}设置转换器脚本执行权限...${NC}"
-        chmod +x "$CONVERTER_SCRIPT"
-    fi
-    
-    echo -e "${GREEN}✓ 转换器脚本已准备就绪${NC}"
-    return 0
 }
 
 # 自定义action函数，实现通用action功能
@@ -348,7 +364,7 @@ if_success() {
 unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
 
 # 从 .bashrc 中删除函数和相关行
-functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check")
+functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check" "clash_on" "clash_off")
 for func in "${functions_to_remove[@]}"; do
   sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" ~/.bashrc
 done
@@ -396,16 +412,13 @@ if [ ! -f "$YQ_BINARY" ]; then
     install_yq
 fi
 
-# 检查转换器脚本
-if ! check_converter_script; then
-    echo -e "${RED}转换器脚本检查失败，请确保 converter.sh 存在${NC}"
-    exit 1
-fi
+# 移除转换器脚本依赖检查，现在直接下载Clash格式配置
 
 # 检测mihomo进程是否存在，存在则要先杀掉，不存在就正常执行
-pids=$(pgrep -f "mihomo-linux")
-if [ -n "$pids" ]; then
-    kill $pids &>/dev/null
+old_pids=$(pgrep -f "mihomo-linux-amd64")
+if [ -n "$old_pids" ]; then
+    kill -9 $old_pids &>/dev/null
+    echo "发现原有进程, 先 kill 再说"
 fi
 
 #==============================================================
@@ -415,71 +428,66 @@ fi
 if [ -f "$Config_File" ]; then
     echo "配置文件已存在，无需下载。"
 else
-    echo -e '\n正在检测订阅地址...'
-    if curl -o /dev/null -L -k -sS --retry 5 -m 10 --connect-timeout 10 -w "%{http_code}" "$URL" | grep -E '^[23][0-9]{2}$' &>/dev/null; then
-        echo "Clash订阅地址可访问！"
+    echo -e '\n正在验证订阅地址...'
+    if validate_subscription_url "$URL"; then
+        echo -e "${GREEN}$Text1${NC}"
         
-        echo -e '\n正在下载Clash配置文件...'
-        if curl -L -k -sS --retry 5 -m 30 -o "$Config_File" "$URL"; then
-            echo "配置文件下载成功！"
+        # 使用新的下载函数
+        if download_clash_config "$URL" "$Config_File"; then
+            echo -e "${GREEN}$Text3${NC}"
         else
-            echo "使用curl下载失败，尝试使用wget进行下..."
-            if $WGET_CMD -O "$Config_File" "$URL"; then
-                echo "使用wget下载成功！"
-            else
-                echo "配置文件下载失败，请检查订阅地址是否正确！"
-                exit 1
-            fi
+            echo -e "${RED}$Text4${NC}"
+            exit 1
         fi
     else
-        echo "Clash订阅地址不可访问！请检查URL或网络连接。"
+        echo -e "${RED}$Text2${NC}"
         exit 1
     fi
 fi
 
 #==============================================================
-# 配置文件格式验证与转换
+# 配置文件格式验证
 #==============================================================
+echo -e "${YELLOW}验证下载的配置文件...${NC}"
+
 if check_yaml "$Config_File"; then
-    echo "配置文件格式正确，无需转换。"
-else
-    echo "检测到配置文件格式不正确，尝试使用自定义转换器进行转换..."
+    echo -e "${GREEN}配置文件格式验证通过${NC}"
     
-    # 使用自定义转换器
-    if ! use_custom_converter; then
-        echo -e "${RED}自定义转换器转换失败，无法继续${NC}"
-        exit 1
-    fi
-    
-    # 验证转换后的配置文件
-    if check_yaml "$Config_File"; then
-        echo -e "${GREEN}配置文件转换成功，格式正确${NC}"
+    # 进一步验证配置文件完整性
+    if validate_config_file "$Config_File"; then
+        echo -e "${GREEN}配置文件结构完整，可以使用${NC}"
     else
-        echo -e "${RED}转换后的配置文件格式仍然不正确${NC}"
-        exit 1
+        echo -e "${YELLOW}配置文件结构不完整，但会尝试继续运行${NC}"
     fi
+else
+    echo -e "${RED}配置文件格式不正确，请检查订阅源是否返回有效的Clash配置${NC}"
+    exit 1
 fi
 
-# 合并配置文件 (仅当模板文件存在时)
-if [ -f "$TEMPLATE_FILE" ]; then
-    if [ -x "$YQ_BINARY" ]; then
-        # 使用 yq 合并配置，若失败或输出为空，则不要覆盖原配置
-        if $YQ_BINARY -n "load(\"$Config_File\") * load(\"$TEMPLATE_FILE\")" > "$MERGED_FILE" 2>/dev/null; then
-            if [ -s "$MERGED_FILE" ]; then
-                mv "$MERGED_FILE" "$Config_File"
+# 合并配置文件（默认禁用）。如需启用，导出 ENABLE_TEMPLATE_MERGE=1
+if [ "${ENABLE_TEMPLATE_MERGE:-0}" = "1" ]; then
+    if [ -f "$TEMPLATE_FILE" ]; then
+        if [ -x "$YQ_BINARY" ]; then
+            # 使用 yq 合并配置，若失败或输出为空，则不要覆盖原配置
+            if $YQ_BINARY -n "load(\"$Config_File\") * load(\"$TEMPLATE_FILE\")" > "$MERGED_FILE" 2>/dev/null; then
+                if [ -s "$MERGED_FILE" ]; then
+                    mv "$MERGED_FILE" "$Config_File"
+                else
+                    echo -e "${YELLOW}yq 合并结果为空，保留原始配置，跳过覆盖${NC}"
+                    rm -f "$MERGED_FILE"
+                fi
             else
-                echo -e "${YELLOW}yq 合并结果为空，保留原始配置，跳过覆盖${NC}"
-                rm -f "$MERGED_FILE"
+                echo -e "${RED}yq 合并失败，保留原始配置，跳过覆盖${NC}"
+                rm -f "$MERGED_FILE" 2>/dev/null
             fi
         else
-            echo -e "${RED}yq 合并失败，保留原始配置，跳过覆盖${NC}"
-            rm -f "$MERGED_FILE" 2>/dev/null
+            echo -e "${RED}yq binary不可执行，跳过配置文件合并${NC}"
         fi
     else
-        echo -e "${RED}yq binary不可执行，跳过配置文件合并${NC}"
+        echo -e "${YELLOW}模板文件不存在，跳过配置文件合并${NC}"
     fi
 else
-    echo -e "${YELLOW}模板文件不存在，跳过配置文件合并${NC}"
+    echo -e "${YELLOW}已禁用模板合并（ENABLE_TEMPLATE_MERGE!=1），跳过配置文件合并${NC}"
 fi
 
 # CPU架构已在前面检测，此处无需重复检测
@@ -544,9 +552,9 @@ echo "CLASH_PORT: $CLASH_PORT"
 
 if [[ $Status -eq 0 ]]; then
     # 定义要添加的函数内容
-    cat << EOF > /tmp/clash_functions_template
-# 开启系统代理
+    cat << EOF > /tmp/clash_functions_template_1
 function proxy_on() {
+    # 开启系统代理
     local is_quiet=\${1:-false}
     
     export http_proxy=http://127.0.0.1:$CLASH_PORT
@@ -561,8 +569,9 @@ function proxy_on() {
     fi
 }
 
-# 关闭系统代理
 function proxy_off() {
+    # 关闭系统代理
+
     local is_quiet=\${1:-false}
     
     unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
@@ -572,8 +581,9 @@ function proxy_off() {
     fi
 }
 
-# 关闭系统函数
 function shutdown_system() {
+    # 关闭系统函数
+
     echo -e "${RED}⚠️  警告：即将删除 Clash 服务！${NC}"
     echo -e "${YELLOW}这将会：${NC}"
     echo -e "  - 停止所有 Clash 相关进程"
@@ -605,8 +615,8 @@ function shutdown_system() {
     fi
 }
 
-# 健康检查函数
 function health_check() {
+    # 健康检查函数
     echo -e "${YELLOW}正在执行健康检查...${NC}"
     if [ -f "$Server_Dir/health_check.sh" ]; then
         bash "$Server_Dir/health_check.sh"
@@ -615,16 +625,62 @@ function health_check() {
         return 1
     fi
 }
+
+function clash_on() {
+    # 启动Clash服务
+    echo -e "${YELLOW}正在启动 Clash 服务...${NC}"
+    
+    # 检查restart.sh是否存在
+    if [ ! -f "$Server_Dir/restart.sh" ]; then
+        echo -e "${RED}[×] restart.sh 脚本不存在${NC}"
+        return 1
+    fi
+    
+    # 运行restart.sh脚本
+    if bash "$Server_Dir/restart.sh"; then
+        echo -e "${GREEN}[✓] Clash 服务重启完成${NC}"
+        return 0
+    else
+        echo -e "${RED}[×] Clash 服务重启失败${NC}"
+        return 1
+    fi
+}
+
 EOF
+
+    cat << 'EOF' > /tmp/clash_functions_template_2
+function clash_off() {
+    # 停止Clash服务
+    echo -e "${YELLOW}正在停止 Clash 服务...${NC}"
+
+    local new_pids=$(pgrep -f "mihomo")
+    echo "NEW PIDS!!!! ${new_pids} "
+    if [ -n "$new_pids" ]; then
+        kill -9 $new_pids &>/dev/null
+        echo "KILL!!!! ${new_pids}"
+    fi
+    
+    # 5. 撤销代理环境变量
+    unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
+    echo -e "${GREEN}[✓] 代理环境变量已清除${NC}"
+    
+    return 0
+}
+# ===========proxy config end===========
+EOF
+
 
     # 使用 envsubst 替换变量
     if command -v envsubst &> /dev/null; then
-        envsubst < /tmp/clash_functions_template > /tmp/clash_functions
+        envsubst < /tmp/clash_functions_template_1 > /tmp/clash_functions_1
+        cat /tmp/clash_functions_template_2 >> /tmp/clash_functions_1
+        mv /tmp/clash_functions_1 /tmp/clash_functions
     else
         # 纯bash实现变量替换，不依赖envsubst
         eval "cat << EOF
-$(cat /tmp/clash_functions_template)
+$(cat /tmp/clash_functions_template_1)
 EOF" > /tmp/clash_functions
+        cat /tmp/clash_functions_template_2 >> /tmp/clash_functions
     fi
 
     # 在临时函数文件中将 #is_quiet 替换为 $is_quiet
@@ -634,25 +690,16 @@ EOF" > /tmp/clash_functions
     cat /tmp/clash_functions >> ~/.bashrc
     echo "已添加代理函数到 .bashrc。"
 
-    rm /tmp/clash_functions_template
+    rm /tmp/clash_functions_template_1
+    rm /tmp/clash_functions_template_2
     rm /tmp/clash_functions
 
     echo -e "请执行以下命令启动系统代理: proxy_on"
     echo -e "若要临时关闭系统代理，请执行: proxy_off"
+    echo -e "若要启动 Clash 服务，请执行: clash_on"
+    echo -e "若要停止 Clash 服务，请执行: clash_off"
     echo -e "若要检查服务健康状态，请执行: health_check"
     echo -e "若需要彻底删除，请调用: shutdown_system"
-
-    # 询问用户是否要自动添加 proxy_on 命令
-    read -p "是否要在 .bashrc 中自动添加 proxy_on 命令？(y/n): " auto_proxy
-    if [[ $auto_proxy == "y" || $auto_proxy == "Y" ]]; then
-        echo "proxy_on" >> ~/.bashrc
-        echo "已在 .bashrc 中添加自动执行 proxy_on 命令。"
-        auto_proxy_enabled=true
-    else
-        echo ""
-        echo "未添加自动执行 proxy_on 命令，您可以手动执行该命令来启用代理。"
-        auto_proxy_enabled=false
-    fi
 
     # 重新加载 .bashrc
     source ~/.bashrc

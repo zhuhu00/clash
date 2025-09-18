@@ -125,14 +125,29 @@ echo ""
 
 # 5. 网络连接测试
 echo "5. 网络连接测试"
-# 测试本地代理
+
+# 测试直接连接（不使用代理）
+echo "5.1 直接网络连接测试"
+if curl -s -m 5 http://www.google.com > /dev/null 2>&1; then
+    check_status "直接连接 (Google)" "PASS" "可以直接访问"
+else
+    check_status "直接连接 (Google)" "FAIL" "无法直接访问"
+fi
+
+if curl -s -m 5 https://api.github.com > /dev/null 2>&1; then
+    check_status "直接连接 (GitHub)" "PASS" "可以直接访问"
+else
+    check_status "直接连接 (GitHub)" "FAIL" "无法直接访问"
+fi
+
+# 测试代理连接
+echo "5.2 代理网络连接测试"
 if curl -s -x http://127.0.0.1:7890 -m 5 http://www.google.com > /dev/null 2>&1; then
     check_status "代理连接 (Google)" "PASS" "可以通过代理访问"
 else
     check_status "代理连接 (Google)" "FAIL" "无法通过代理访问"
 fi
 
-# 测试 GitHub
 if curl -s -x http://127.0.0.1:7890 -m 5 https://api.github.com > /dev/null 2>&1; then
     check_status "代理连接 (GitHub)" "PASS" "可以通过代理访问"
 else
@@ -215,10 +230,3 @@ if [ $ERRORS -gt 0 ] || [ $WARNINGS -gt 0 ]; then
         echo ""
     fi
 fi
-
-# # 退出码
-# if [ $ERRORS -gt 0 ]; then
-#     exit 1
-# else
-#     exit 0
-# fi

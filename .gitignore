@@ -2,7 +2,6 @@ conf/template.yaml
 conf/config_raw.yaml
 conf/config_decoded.yaml
 conf/config.yaml
-conf/geoip.metadb
 
 conf/cache.db
 
@@ -10,3 +9,6 @@ logs
 .env
 aa
 clash.pid
+
+conf/unrecognized_protocols.log
+howtorun.sh

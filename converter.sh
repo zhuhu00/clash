@@ -396,9 +396,9 @@ proxies:
 EOF
     fi
     
-    # 创建临时文件存储未识别的协议
-    local unrecognized_file="/tmp/unrecognized_protocols.txt"
-    > "$unrecognized_file"
+    # 创建未识别协议日志（不写入输出文件，避免污染 YAML）
+    local unrecognized_log="$CONF_DIR/unrecognized_protocols.log"
+    : > "$unrecognized_log"
     
     # 处理每一行
     while IFS= read -r line; do
@@ -416,20 +416,11 @@ EOF
         elif [[ "$line" =~ ^vmess:// ]]; then
             parse_vmess "$line" >> "$output_file"
         else
-            echo "# 未识别的协议: $line" >> "$unrecognized_file"
+            echo "未识别的协议: $line" >> "$unrecognized_log"
         fi
     done < "$input_file"
     
-    # 在代理配置结束后添加未识别的协议注释
-    if [ -s "$unrecognized_file" ]; then
-        echo "" >> "$output_file"
-        echo "# 未识别的协议列表:" >> "$output_file"
-        cat "$unrecognized_file" >> "$output_file"
-        echo "" >> "$output_file"
-    fi
-    
-    # 清理临时文件
-    rm -f "$unrecognized_file"
+    # 不再将未识别协议追加到输出文件，保持输出 YAML 干净
     
     # 添加代理组和规则（使用参考配置的格式）
     if [ $PROXY_COUNT -gt 0 ]; then
@@ -484,6 +475,13 @@ EOF
             echo "    - 'GEOIP,CN,DIRECT'" >> "$output_file"
             echo "    - 'MATCH,悠兔'" >> "$output_file"
         fi
+    fi
+    
+    # 安全收尾：若输出中出现第二个及之后的 "proxies:"，仅保留第一个之前的内容
+    # 避免因异常输入或外部拼接导致的重复段落
+    if grep -q "^proxies:$" "$output_file"; then
+        awk 'BEGIN{n=0} { if($0 ~ /^proxies:[[:space:]]*$/){ n++ } if(n<2) print }' \
+            "$output_file" > "${output_file}.tmp" && mv "${output_file}.tmp" "$output_file"
     fi
     
     # 清理临时文件

@@ -549,6 +549,20 @@ main() {
 }
 
 # 如果直接运行此脚本
-if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
-    main "$@"
+# 根据shell类型检测是否直接运行
+if [ -n "$ZSH_VERSION" ]; then
+    # zsh 环境
+    if [ "${(%):-%x}" == "${0}" ]; then
+        main "$@"
+    fi
+elif [ -n "$BASH_VERSION" ]; then
+    # bash 环境
+    if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
+        main "$@"
+    fi
+else
+    # 默认使用 bash 语法
+    if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
+        main "$@"
+    fi
 fi

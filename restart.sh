@@ -49,7 +49,17 @@ if_success() {
 }
 
 # 定义路径变量
-Server_Dir="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# 根据shell类型获取脚本路径
+if [ -n "$ZSH_VERSION" ]; then
+    # zsh 环境
+    Server_Dir="$(cd "$(dirname "$(readlink -f "${(%):-%x}")")" && pwd)"
+elif [ -n "$BASH_VERSION" ]; then
+    # bash 环境
+    Server_Dir="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+else
+    # 默认使用 bash 语法
+    Server_Dir="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+fi
 Conf_Dir="$Server_Dir/conf"
 Log_Dir="$Server_Dir/logs"
 

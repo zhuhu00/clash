@@ -9,7 +9,17 @@ echo "======================================"
 echo ""
 
 # 获取脚本所在目录的绝对路径
-SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
+# 根据shell类型获取脚本路径
+if [ -n "$ZSH_VERSION" ]; then
+    # zsh 环境
+    SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${(%):-%x}")" )" && pwd )"
+elif [ -n "$BASH_VERSION" ]; then
+    # bash 环境
+    SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
+else
+    # 默认使用 bash 语法
+    SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
+fi
 
 # 颜色定义
 RED='\033[0;31m'

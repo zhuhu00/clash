@@ -1,7 +1,17 @@
 #!/bin/bash
 
 # 获取脚本工作目录绝对路径
-export Server_Dir=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+# 根据shell类型获取脚本路径
+if [ -n "$ZSH_VERSION" ]; then
+    # zsh 环境
+    export Server_Dir=$(cd $(dirname "${(%):-%x}") && pwd)
+elif [ -n "$BASH_VERSION" ]; then
+    # bash 环境
+    export Server_Dir=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+else
+    # 默认使用 bash 语法
+    export Server_Dir=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+fi
 
 # 关闭监视模式,不再报告后台作业状态
 set +m
@@ -81,17 +91,26 @@ rm -rf "$Log_Dir"
 # 清除环境变量
 unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
 
-# 从 .bashrc 中删除函数和相关行
+# 根据当前shell选择配置文件
+if [ -n "$ZSH_VERSION" ]; then
+    SHELL_CONFIG_FILE="$HOME/.zshrc"
+elif [ -n "$BASH_VERSION" ]; then
+    SHELL_CONFIG_FILE="$HOME/.bashrc"
+else
+    SHELL_CONFIG_FILE="$HOME/.bashrc"  # 默认使用bashrc
+fi
+
+# 从配置文件中删除函数和相关行
 functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check")
 for func in "${functions_to_remove[@]}"; do
-  sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" ~/.bashrc
+  sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" "$SHELL_CONFIG_FILE"
 done
 
-sed -i '/^# 开启系统代理/d; /^# 关闭系统代理/d; /^# 新增关闭系统函数/d; /^# 检查clash进程是否正常启动/d; /proxy_on/d; /^#.*proxy_on/d' ~/.bashrc
-sed -i '/^$/N;/^\n$/D' ~/.bashrc
+sed -i '/^# 开启系统代理/d; /^# 关闭系统代理/d; /^# 新增关闭系统函数/d; /^# 检查clash进程是否正常启动/d; /proxy_on/d; /^#.*proxy_on/d' "$SHELL_CONFIG_FILE"
+sed -i '/^$/N;/^\n$/D' "$SHELL_CONFIG_FILE"
 
-# 重新加载.bashrc文件
-source ~/.bashrc
+# 重新加载配置文件
+source "$SHELL_CONFIG_FILE"
 
 echo -e "\033[32m \n[√]服务关闭成功\n \033[0m"
 

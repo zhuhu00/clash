@@ -27,7 +27,17 @@ Status=0  # 脚本运行状态，默认为0，表示成功
 #==============================================================
 
 # 文件路径变量
-Server_Dir="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
+# 根据shell类型获取脚本路径
+if [ -n "$ZSH_VERSION" ]; then
+    # zsh 环境
+    Server_Dir="$( cd "$( dirname "$(readlink -f "${(%):-%x}")" )" && pwd )"
+elif [ -n "$BASH_VERSION" ]; then
+    # bash 环境
+    Server_Dir="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
+else
+    # 默认使用 bash 语法
+    Server_Dir="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
+fi
 Conf_Dir="$Server_Dir/conf"
 Log_Dir="$Server_Dir/logs"
 
@@ -363,15 +373,27 @@ if_success() {
 # 清除变量
 unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
 
-# 从 .bashrc 中删除函数和相关行
+# 根据当前shell选择配置文件
+if [ -n "$ZSH_VERSION" ]; then
+    SHELL_CONFIG_FILE="$HOME/.zshrc"
+elif [ -n "$BASH_VERSION" ]; then
+    SHELL_CONFIG_FILE="$HOME/.bashrc"
+else
+    SHELL_CONFIG_FILE="$HOME/.bashrc"  # 默认使用bashrc
+fi
+
+# 从配置文件中删除函数和相关行
 functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check" "clash_on" "clash_off")
 for func in "${functions_to_remove[@]}"; do
-  sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" ~/.bashrc
+  # 删除bash风格的函数: function name() { ... }
+  sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" "$SHELL_CONFIG_FILE"
+  # 删除zsh风格的函数: name() { ... }
+  sed -i -E "/^${func}[[:space:]]*()/,/^}$/d" "$SHELL_CONFIG_FILE"
 done
 
 # 删除相关行
-sed -i '/^# 开启系统代理/d; /^# 关闭系统代理/d; /^# 关闭系统函数/d; /^# 检查clash进程是否正常启动/d; /proxy_on/d; /^#.*proxy_on/d' ~/.bashrc
-sed -i '/^$/N;/^\n$/D' ~/.bashrc
+sed -i '/^# 开启系统代理/d; /^# 关闭系统代理/d; /^# 关闭系统函数/d; /^# 检查clash进程是否正常启动/d; /proxy_on/d; /^#.*proxy_on/d' "$SHELL_CONFIG_FILE"
+sed -i '/^$/N;/^\n$/D' "$SHELL_CONFIG_FILE"
 
 # 确保logs,conf,bin目录存在
 [[ ! -d "$Log_Dir" ]] && mkdir -p $Log_Dir
@@ -551,9 +573,11 @@ fi
 echo "CLASH_PORT: $CLASH_PORT"
 
 if [[ $Status -eq 0 ]]; then
-    # 定义要添加的函数内容
-    cat << EOF > /tmp/clash_functions_template_1
-function proxy_on() {
+    # 根据当前shell选择函数语法和配置文件
+    if [ -n "$ZSH_VERSION" ]; then
+        # 使用zsh时，生成zsh风格的函数
+        cat << EOF > /tmp/clash_functions_template_1
+proxy_on() {
     # 开启系统代理
     local is_quiet=\${1:-false}
     
@@ -569,7 +593,7 @@ function proxy_on() {
     fi
 }
 
-function proxy_off() {
+proxy_off() {
     # 关闭系统代理
 
     local is_quiet=\${1:-false}
@@ -581,26 +605,26 @@ function proxy_off() {
     fi
 }
 
-function shutdown_system() {
+shutdown_system() {
     # 关闭系统函数
 
     echo -e "${RED}⚠️  警告：即将删除 Clash 服务！${NC}"
     echo -e "${YELLOW}这将会：${NC}"
     echo -e "  - 停止所有 Clash 相关进程"
     echo -e "  - 清除代理环境变量"
-    echo -e "  - 从 ~/.bashrc 中移除相关函数"
+    echo -e "  - 从配置文件中移除相关函数"
     echo -e "  - 删除配置文件和日志"
     echo -e "  - 询问是否删除整个工作目录"
     echo ""
     
-    read -p "您确定要继续吗？(输入 'yes' 确认): " first_confirm
+    read "first_confirm?您确定要继续吗？(输入 'yes' 确认): "
     if [ "$first_confirm" != "yes" ]; then
         echo -e "${GREEN}操作已取消${NC}"
         return 0
     fi
     
     echo -e "${RED}最后确认：这个操作无法撤销！${NC}"
-    read -p "请再次输入 'DELETE' 以确认删除: " second_confirm
+    read "second_confirm?请再次输入 'DELETE' 以确认删除: "
     if [ "$second_confirm" != "DELETE" ]; then
         echo -e "${GREEN}操作已取消${NC}"
         return 0
@@ -608,25 +632,25 @@ function shutdown_system() {
     
     echo -e "${YELLOW}正在执行关闭脚本...${NC}"
     if [ -f "$Server_Dir/shutdown.sh" ]; then
-        bash "$Server_Dir/shutdown.sh"
+        zsh "$Server_Dir/shutdown.sh"
     else
         echo -e "${RED}错误：shutdown.sh 脚本不存在${NC}"
         return 1
     fi
 }
 
-function health_check() {
+health_check() {
     # 健康检查函数
     echo -e "${YELLOW}正在执行健康检查...${NC}"
     if [ -f "$Server_Dir/health_check.sh" ]; then
-        bash "$Server_Dir/health_check.sh"
+        zsh "$Server_Dir/health_check.sh"
     else
         echo -e "${RED}错误：health_check.sh 脚本不存在${NC}"
         return 1
     fi
 }
 
-function clash_on() {
+clash_on() {
     # 启动Clash服务
     echo -e "${YELLOW}正在启动 Clash 服务...${NC}"
     
@@ -637,7 +661,7 @@ function clash_on() {
     fi
     
     # 运行restart.sh脚本
-    if bash "$Server_Dir/restart.sh"; then
+    if zsh "$Server_Dir/restart.sh"; then
         echo -e "${GREEN}[✓] Clash 服务重启完成${NC}"
         return 0
     else
@@ -647,8 +671,129 @@ function clash_on() {
 }
 
 EOF
+    else
+        # 使用bash时，生成bash风格的函数
+        cat << EOF > /tmp/clash_functions_template_1
+function proxy_on() {
+    # 开启系统代理
+    local is_quiet=\${1:-false}
+    
+    export http_proxy=http://127.0.0.1:$CLASH_PORT
+    export https_proxy=http://127.0.0.1:$CLASH_PORT
+    export no_proxy=127.0.0.1,localhost
+    export HTTP_PROXY=http://127.0.0.1:$CLASH_PORT
+    export HTTPS_PROXY=http://127.0.0.1:$CLASH_PORT
+    export NO_PROXY=127.0.0.1,localhost
+    
+    if [ "\$is_quiet" != "true" ]; then
+        echo -e "\${GREEN}[√] 已开启代理\${NC}"
+    fi
+}
 
-    cat << 'EOF' > /tmp/clash_functions_template_2
+function proxy_off() {
+    # 关闭系统代理
+    local is_quiet=\${1:-false}
+    
+    unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
+
+    if [ "\$is_quiet" != "true" ]; then
+        echo -e "\${RED}[×] 已关闭代理\${NC}"
+    fi
+}
+
+function shutdown_system() {
+    # 关闭系统函数
+    echo -e "\${RED}⚠️  警告：即将删除 Clash 服务！\${NC}"
+    echo -e "\${YELLOW}这将会：\${NC}"
+    echo -e "  - 停止所有 Clash 相关进程"
+    echo -e "  - 清除代理环境变量"
+    echo -e "  - 从配置文件中移除相关函数"
+    echo -e "  - 删除配置文件和日志"
+    echo -e "  - 询问是否删除整个工作目录"
+    echo ""
+    
+    read -p "您确定要继续吗？(输入 'yes' 确认): " first_confirm
+    if [ "\$first_confirm" != "yes" ]; then
+        echo -e "\${GREEN}操作已取消\${NC}"
+        return 0
+    fi
+    
+    echo -e "\${RED}最后确认：这个操作无法撤销！\${NC}"
+    read -p "请再次输入 'DELETE' 以确认删除: " second_confirm
+    if [ "\$second_confirm" != "DELETE" ]; then
+        echo -e "\${GREEN}操作已取消\${NC}"
+        return 0
+    fi
+    
+    echo -e "\${YELLOW}正在执行关闭脚本...\${NC}"
+    if [ -f "\$Server_Dir/shutdown.sh" ]; then
+        bash "\$Server_Dir/shutdown.sh"
+    else
+        echo -e "\${RED}错误：shutdown.sh 脚本不存在\${NC}"
+        return 1
+    fi
+}
+
+function health_check() {
+    # 健康检查函数
+    echo -e "\${YELLOW}正在执行健康检查...\${NC}"
+    if [ -f "\$Server_Dir/health_check.sh" ]; then
+        bash "\$Server_Dir/health_check.sh"
+    else
+        echo -e "\${RED}错误：health_check.sh 脚本不存在\${NC}"
+        return 1
+    fi
+}
+
+function clash_on() {
+    # 启动Clash服务
+    echo -e "\${YELLOW}正在启动 Clash 服务...\${NC}"
+    
+    # 检查restart.sh是否存在
+    if [ ! -f "\$Server_Dir/restart.sh" ]; then
+        echo -e "\${RED}[×] restart.sh 脚本不存在\${NC}"
+        return 1
+    fi
+    
+    # 运行restart.sh脚本
+    if bash "\$Server_Dir/restart.sh"; then
+        echo -e "\${GREEN}[✓] Clash 服务重启完成\${NC}"
+        return 0
+    else
+        echo -e "\${RED}[×] Clash 服务重启失败\${NC}"
+        return 1
+    fi
+}
+
+EOF
+    fi
+
+    # 根据当前shell选择clash_off函数语法
+    if [ -n "$ZSH_VERSION" ]; then
+        # zsh风格的clash_off函数
+        cat << 'EOF' > /tmp/clash_functions_template_2
+clash_off() {
+    # 停止Clash服务
+    echo -e "${YELLOW}正在停止 Clash 服务...${NC}"
+
+    local new_pids=$(pgrep -f "mihomo")
+    echo "NEW PIDS!!!! ${new_pids} "
+    if [ -n "$new_pids" ]; then
+        kill -9 $new_pids &>/dev/null
+        echo "KILL!!!! ${new_pids}"
+    fi
+    
+    # 撤销代理环境变量
+    unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
+    echo -e "${GREEN}[✓] 代理环境变量已清除${NC}"
+    
+    return 0
+}
+# ===========proxy config end===========
+EOF
+    else
+        # bash风格的clash_off函数
+        cat << 'EOF' > /tmp/clash_functions_template_2
 function clash_off() {
     # 停止Clash服务
     echo -e "${YELLOW}正在停止 Clash 服务...${NC}"
@@ -668,7 +813,7 @@ function clash_off() {
 }
 # ===========proxy config end===========
 EOF
-
+    fi
 
     # 使用 envsubst 替换变量
     if command -v envsubst &> /dev/null; then
@@ -686,9 +831,9 @@ EOF" > /tmp/clash_functions
     # 在临时函数文件中将 #is_quiet 替换为 $is_quiet
     sed -i 's/#is_quiet/$is_quiet/g' /tmp/clash_functions
 
-    # 将函数追加到 .bashrc
-    cat /tmp/clash_functions >> ~/.bashrc
-    echo "已添加代理函数到 .bashrc。"
+    # 将函数追加到配置文件
+    cat /tmp/clash_functions >> "$SHELL_CONFIG_FILE"
+    echo "已添加代理函数到 $SHELL_CONFIG_FILE。"
 
     rm /tmp/clash_functions_template_1
     rm /tmp/clash_functions_template_2
@@ -701,8 +846,8 @@ EOF" > /tmp/clash_functions
     echo -e "若要检查服务健康状态，请执行: health_check"
     echo -e "若需要彻底删除，请调用: shutdown_system"
 
-    # 重新加载 .bashrc
-    source ~/.bashrc
+    # 重新加载配置文件
+    source "$SHELL_CONFIG_FILE"
 fi
 
 # 如果是第一次运行或用户拒绝自动添加，此变量可能未设置

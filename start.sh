@@ -41,6 +41,9 @@ fi
 Conf_Dir="$Server_Dir/conf"
 Log_Dir="$Server_Dir/logs"
 
+# 确保后续变量替换可用
+export Server_Dir
+
 # 注入配置文件里面的变量
 source $Server_Dir/.env
 
@@ -830,6 +833,9 @@ EOF" > /tmp/clash_functions
 
     # 在临时函数文件中将 #is_quiet 替换为 $is_quiet
     sed -i 's/#is_quiet/$is_quiet/g' /tmp/clash_functions
+
+    # 确保仍残留的 $Server_Dir 被替换为绝对路径，防止写入 ~/.bashrc 后变成 /restart.sh 这类路径
+    sed -i "s#\\\$Server_Dir#${Server_Dir}#g" /tmp/clash_functions
 
     # 将函数追加到配置文件
     cat /tmp/clash_functions >> "$SHELL_CONFIG_FILE"

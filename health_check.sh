@@ -4,7 +4,7 @@
 # 用于检测 Clash 服务状态和配置问题
 
 echo "======================================"
-echo "Clash for AutoDL 健康检查"
+echo "Clash  健康检查"
 echo "======================================"
 echo ""
 
@@ -65,11 +65,53 @@ echo ""
 
 # 2. 检查端口监听
 echo "2. 检查端口监听状态"
-PORTS=("7890" "7890" "7890" "9090")
+# 动态解析代理端口（优先 mixed-port → port → socks-port → 7890）
+CONFIG_FILE="$SCRIPT_DIR/conf/config.yaml"
+if [ -x "$SCRIPT_DIR/bin/yq" ] && [ -f "$CONFIG_FILE" ]; then
+    CLASH_PORT=$("$SCRIPT_DIR/bin/yq" eval '."mixed-port" // .port // ."socks-port" // 7890' "$CONFIG_FILE" 2>/dev/null)
+    [ -z "$CLASH_PORT" ] && CLASH_PORT=7890
+else
+    CLASH_PORT=7890
+fi
+
+# 解析面板端口（尝试 external-controller，如未配置则默认 9090）
+if [ -x "$SCRIPT_DIR/bin/yq" ] && [ -f "$CONFIG_FILE" ]; then
+    PANEL_ADDR=$("$SCRIPT_DIR/bin/yq" eval '."external-controller" // "127.0.0.1:9090"' "$CONFIG_FILE" 2>/dev/null)
+    PANEL_PORT=$(echo "$PANEL_ADDR" | awk -F: '{print $NF}')
+    [ -z "$PANEL_PORT" ] && PANEL_PORT=9090
+else
+    PANEL_PORT=9090
+fi
+
+PORTS=("$CLASH_PORT" "$CLASH_PORT" "$CLASH_PORT" "$PANEL_PORT")
 PORT_NAMES=("HTTP/SOCKS5代理" "HTTP代理" "SOCKS5代理" "控制面板")
 
+check_port_listen() {
+    local port="$1"
+    # 优先 ss，其次 lsof/netstat，最后 /dev/tcp 或 nc 兜底
+    if command -v ss >/dev/null 2>&1; then
+        ss -ltn 2>/dev/null | awk '{print $4}' | grep -E ":${port}$|:${port}[^0-9]" >/dev/null 2>&1 && return 0
+    fi
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -i :"${port}" >/dev/null 2>&1 && return 0
+    fi
+    if command -v netstat >/dev/null 2>&1; then
+        netstat -ltn 2>/dev/null | awk '{print $4}' | grep -E ":${port}$|:${port}[^0-9]" >/dev/null 2>&1 && return 0
+    fi
+    # /dev/tcp 兜底
+    if (exec 3<>/dev/tcp/127.0.0.1/"${port}") >/dev/null 2>&1; then
+        exec 3>&- 3<&-
+        return 0
+    fi
+    # nc 兜底
+    if command -v nc >/dev/null 2>&1; then
+        nc -z 127.0.0.1 "${port}" >/dev/null 2>&1 && return 0
+    fi
+    return 1
+}
+
 for i in ${!PORTS[@]}; do
-    if lsof -i :${PORTS[$i]} > /dev/null 2>&1; then
+    if check_port_listen "${PORTS[$i]}"; then
         check_status "${PORT_NAMES[$i]}端口 (${PORTS[$i]})" "PASS" "端口正在监听"
     else
         check_status "${PORT_NAMES[$i]}端口 (${PORTS[$i]})" "FAIL" "端口未监听"
@@ -152,13 +194,13 @@ fi
 
 # 测试代理连接
 echo "5.2 代理网络连接测试"
-if curl -s -x http://127.0.0.1:7890 -m 5 http://www.google.com > /dev/null 2>&1; then
+if curl -s -x http://127.0.0.1:${CLASH_PORT} -m 5 http://www.google.com > /dev/null 2>&1; then
     check_status "代理连接 (Google)" "PASS" "可以通过代理访问"
 else
     check_status "代理连接 (Google)" "FAIL" "无法通过代理访问"
 fi
 
-if curl -s -x http://127.0.0.1:7890 -m 5 https://api.github.com > /dev/null 2>&1; then
+if curl -s -x http://127.0.0.1:${CLASH_PORT} -m 5 https://api.github.com > /dev/null 2>&1; then
     check_status "代理连接 (GitHub)" "PASS" "可以通过代理访问"
 else
     check_status "代理连接 (GitHub)" "FAIL" "无法通过代理访问"

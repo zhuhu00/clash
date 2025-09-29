@@ -36,15 +36,15 @@ ERRORS=0
 # 检查函数
 check_status() {
     local check_name="$1"
-    local status="$2"
+    local check_status="$2"
     local message="$3"
     
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
     
-    if [ "$status" = "PASS" ]; then
+    if [ "$check_status" = "PASS" ]; then
         echo -e "${GREEN}[✓]${NC} ${check_name}: ${message}"
         PASSED_CHECKS=$((PASSED_CHECKS + 1))
-    elif [ "$status" = "WARN" ]; then
+    elif [ "$check_status" = "WARN" ]; then
         echo -e "${YELLOW}[!]${NC} ${check_name}: ${message}"
         WARNINGS=$((WARNINGS + 1))
     else
@@ -110,11 +110,15 @@ check_port_listen() {
     return 1
 }
 
-for i in ${!PORTS[@]}; do
-    if check_port_listen "${PORTS[$i]}"; then
-        check_status "${PORT_NAMES[$i]}端口 (${PORTS[$i]})" "PASS" "端口正在监听"
+# 使用数字索引，避免变量替换问题  
+for i in 0 1 2 3; do
+    port="${PORTS[$i]:-7890}"  # 默认值兜底
+    name="${PORT_NAMES[$i]:-代理端口}"
+    
+    if check_port_listen "$port"; then
+        check_status "${name}端口 (${port})" "PASS" "端口正在监听"
     else
-        check_status "${PORT_NAMES[$i]}端口 (${PORTS[$i]})" "FAIL" "端口未监听"
+        check_status "${name}端口 (${port})" "FAIL" "端口未监听"
     fi
 done
 echo ""

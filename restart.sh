@@ -193,7 +193,7 @@ check_service_status() {
 # 显示服务信息
 show_service_info() {
   echo "========================================="
-  echo "Clash for AutoDL - 服务重启"
+  echo "Clash - 服务重启"
   echo "========================================="
   echo "配置目录: $Conf_Dir"
   echo "日志目录: $Log_Dir"

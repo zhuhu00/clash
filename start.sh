@@ -792,6 +792,7 @@ clash_off() {
     
     return 0
 }
+proxy_on
 # ===========proxy config end===========
 EOF
     else
@@ -814,6 +815,7 @@ function clash_off() {
     
     return 0
 }
+proxy_on
 # ===========proxy config end===========
 EOF
     fi

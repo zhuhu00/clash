@@ -45,7 +45,11 @@ Log_Dir="$Server_Dir/logs"
 export Server_Dir
 
 # 注入配置文件里面的变量
-source $Server_Dir/.env
+if [ -f "$Server_Dir/.env" ]; then
+    source "$Server_Dir/.env"
+else
+    echo -e "${YELLOW}Warning: .env file not found. Using default or empty values for environment variables.${NC}"
+fi
 
 # 第三方库版本变量
 MIHOMO_VERSION="1.19.11"
@@ -830,7 +834,7 @@ EOF
         eval "cat << EOF
 $(cat /tmp/clash_functions_template_1)
 EOF" > /tmp/clash_functions
-        cat /tmp/clash_functions_template_2 >> /tmp/clash_functions
+        cat /tmp/clash_functions_template_2 >> /tmp_clash_functions
     fi
 
     # 在临时函数文件中将 #is_quiet 替换为 $is_quiet

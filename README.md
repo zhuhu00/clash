@@ -1,5 +1,4 @@
-# Clash in Container
-docker 容器中, 使用 clash, 包括 autodl, 超算上之类的
+# Clash 
 
 | update: 有关 config.yaml 文件, 可以创建一个空白的, 从自己本地电脑上 copy 一个, 内容不用改变, 直接可以使用. 
 
@@ -8,21 +7,21 @@ docker 容器中, 使用 clash, 包括 autodl, 超算上之类的
 下载项目
 
 ```bash
-git clone -b clash-in-container https://github.com/zhuhu00/clash-for-linux.git
+git clone https://github.com/zhuhu00/clash.git
 ```
 
-进入到项目目录，编辑`.env`文件，修改变量`CLASH_URL`的值。
+<!-- 进入到项目目录，编辑`.env`文件，修改变量`CLASH_URL`的值。
 
 ```bash
 cd clash-for-linux
 cp conf/template_raw.yaml conf/template.yaml
 cp .env.example .env
 vim .env
-```
+``` -->
 
 <!-- ![3.png](./image/3.jpg) -->
 
-CLASH_URL填写订阅地址，CLASH_SECRET可自行填写（例如“123456”）。填写后按“:wq”退出。
+<!-- CLASH_URL填写订阅地址，CLASH_SECRET可自行填写（例如“123456”）。填写后按“:wq”退出。 -->
 
 <br>
 
@@ -33,7 +32,7 @@ CLASH_URL填写订阅地址，CLASH_SECRET可自行填写（例如“123456”�
 - 进入项目目录
 
 ```bash
-cd clash-for-linux
+cd clash
 ```
 
 安装lsof
@@ -51,6 +50,11 @@ source ./start.sh
 ```
 
 在“是否要在 .bashrc 中自动添加 proxy_on 命令？(y/n): ”后填y。
+
+- **之后在本地电脑的 clash, 复制本地的 clash 配置文件到conf下, 命名为 config.yaml. 
+就可以开始测试了. "health_check"**
+
+## 测试以及其他问题
 
 - 检查服务端口
 

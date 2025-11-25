@@ -38,8 +38,9 @@
 3. 准备配置文件：
 	- 若 `.env` 中提供了订阅地址且该地址可访问，`start.sh` 会自动下载到 `conf/config.yaml`(不一定能成功, 推荐第下面的方案, 手动维护)。
 	- 如果更倾向手动维护，直接把本地 Clash 导出的 `config.yaml` 复制到 `conf/` 目录即可（与提示中的 update 保持一致）。
+  		![20251125161141](https://raw.githubusercontent.com/zhuhu00/img/master/uPic/20251125161141.png)
 
-4. 运行启动脚本：
+1. 运行启动脚本：
 
 	```bash
 	source ./start.sh

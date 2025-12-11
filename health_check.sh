@@ -110,6 +110,16 @@ check_port_listen() {
     return 1
 }
 
+check_ip_location() {
+    local location
+    location=$(curl -s --max-time 5 https://ip.fm/ | tr -d '\r')
+    if [ -n "$location" ]; then
+        check_status "IP 物理位置" "PASS" "${RED}${location}${NC}"
+    else
+        check_status "IP 物理位置" "FAIL" "无法获取 IP 物理位置"
+    fi
+}
+
 # 使用数字索引，避免变量替换问题  
 for i in 0 1 2 3; do
     port="${PORTS[$i]:-7890}"  # 默认值兜底
@@ -209,6 +219,9 @@ if curl -s -x http://127.0.0.1:${CLASH_PORT} -m 5 https://api.github.com > /dev/
 else
     check_status "代理连接 (GitHub)" "FAIL" "无法通过代理访问"
 fi
+
+echo "5.3 IP 物理位置测试"
+check_ip_location
 echo ""
 
 # 6. 日志检查

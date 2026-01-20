@@ -213,6 +213,9 @@ main() {
   
   # 确保日志目录存在
   [[ ! -d "$Log_Dir" ]] && mkdir -p "$Log_Dir"
+
+  # 启动前清空旧日志，避免无限追加导致文件持续膨胀
+  : > "$Log_Dir/mihomo.log"
   
   start_clash_service
   

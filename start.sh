@@ -390,7 +390,7 @@ else
 fi
 
 # 从配置文件中删除函数和相关行
-functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check" "clash_on" "clash_off")
+functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check" "clash_on" "clash_off" "clash_test")
 for func in "${functions_to_remove[@]}"; do
   # 删除bash风格的函数: function name() { ... }
   sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" "$SHELL_CONFIG_FILE"
@@ -677,6 +677,17 @@ clash_on() {
     fi
 }
 
+clash_test() {
+    # 测速节点延迟
+    echo -e "${YELLOW}正在测速节点延迟...${NC}"
+    if [ -f "$Server_Dir/tools/clash_test.sh" ]; then
+        bash "$Server_Dir/tools/clash_test.sh" "$@"
+    else
+        echo -e "${RED}错误：tools/clash_test.sh 脚本不存在${NC}"
+        return 1
+    fi
+}
+
 EOF
     else
         # 使用bash时，生成bash风格的函数
@@ -772,6 +783,17 @@ function clash_on() {
     fi
 }
 
+function clash_test() {
+    # 测速节点延迟
+    echo -e "\${YELLOW}正在测速节点延迟...\${NC}"
+    if [ -f "\$Server_Dir/tools/clash_test.sh" ]; then
+        bash "\$Server_Dir/tools/clash_test.sh" "\$@"
+    else
+        echo -e "\${RED}错误：tools/clash_test.sh 脚本不存在\${NC}"
+        return 1
+    fi
+}
+
 EOF
     fi
 
@@ -856,6 +878,7 @@ EOF" > /tmp/clash_functions
     echo -e "若要启动 Clash 服务，请执行: clash_on"
     echo -e "若要停止 Clash 服务，请执行: clash_off"
     echo -e "若要检查服务健康状态，请执行: health_check"
+    echo -e "若要测速节点延迟，请执行: clash_test"
     echo -e "若需要彻底删除，请调用: shutdown_system"
 
     # 重新加载配置文件

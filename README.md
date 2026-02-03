@@ -61,6 +61,7 @@
 - `clash_on`：执行 `restart.sh`，平滑重启 Mihomo 服务。
 - `clash_off`：终止当前 Mihomo 进程，并清空代理变量。
 - `health_check`：调用 `health_check.sh`，验证外网访问。
+- `clash_test`：调用 `tools/clash_test.sh`，并发测速所有节点并输出延迟最低的前 10。
 - `shutdown_system`：触发带双重确认的卸载流程，清理脚本、配置和日志。
 
 首次运行后脚本会提示这些命令，可按需再次执行。若后续修改了配置文件，请运行 `clash_on` 或 `source ./restart.sh` 让新配置生效。
@@ -83,4 +84,3 @@
 - 函数未生效：确认 `~/.zshrc` 或 `~/.bashrc` 中已追加命令，重新 `source` 一次，或在新的 shell 会话中重试。
 
 完成以上步骤后，即可在容器内开启代理，加速访问外网资源。根据需要可继续通过 VS Code 端口转发或其它工具实现本地访问。
-

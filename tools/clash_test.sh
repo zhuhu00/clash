@@ -40,6 +40,14 @@ TOP="10"
 JOBS="8"
 SORT="false"
 
+# Drop empty/blank args (some shells may pass a blank argument)
+args=()
+for arg in "$@"; do
+  [[ -z "${arg//[[:space:]]/}" ]] && continue
+  args+=("$arg")
+done
+set -- "${args[@]}"
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --config) CONFIG="$2"; shift 2 ;;
@@ -266,8 +274,12 @@ if top:
         out.append(line)
         if len(out) >= int(top):
             break
+    print(f"=== TOP {top} LOWEST DELAYS ===")
+    rank=1
     for line in out:
-        print(line)
+        delay,name=line.split("\t",1)
+        print(f"{rank}. {delay} ms\t{name}")
+        rank+=1
 else:
     for line in sorted_lines:
         print(line)

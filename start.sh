@@ -677,17 +677,6 @@ clash_on() {
     fi
 }
 
-clash_test() {
-    # 测速节点延迟
-    echo -e "${YELLOW}正在测速节点延迟...${NC}"
-    if [ -f "$Server_Dir/tools/clash_test.sh" ]; then
-        bash "$Server_Dir/tools/clash_test.sh" "$@"
-    else
-        echo -e "${RED}错误：tools/clash_test.sh 脚本不存在${NC}"
-        return 1
-    fi
-}
-
 EOF
     else
         # 使用bash时，生成bash风格的函数
@@ -783,17 +772,6 @@ function clash_on() {
     fi
 }
 
-function clash_test() {
-    # 测速节点延迟
-    echo -e "\${YELLOW}正在测速节点延迟...\${NC}"
-    if [ -f "\$Server_Dir/tools/clash_test.sh" ]; then
-        bash "\$Server_Dir/tools/clash_test.sh" "\$@"
-    else
-        echo -e "\${RED}错误：tools/clash_test.sh 脚本不存在\${NC}"
-        return 1
-    fi
-}
-
 EOF
     fi
 
@@ -818,6 +796,18 @@ clash_off() {
     
     return 0
 }
+clash_test() {
+    # 测速节点延迟
+    if [[ "$*" != *"--help"* ]] && [[ "$*" != *"-h"* ]]; then
+        echo -e "${YELLOW}正在测速节点延迟...${NC}"
+    fi
+    if [ -f "$Server_Dir/tools/clash_test.sh" ]; then
+        cd "$Server_Dir" && bash "$Server_Dir/tools/clash_test.sh" "$@"
+    else
+        echo -e "${RED}错误：tools/clash_test.sh 脚本不存在${NC}"
+        return 1
+    fi
+}
 proxy_on
 # ===========proxy config end===========
 EOF
@@ -834,12 +824,24 @@ function clash_off() {
         kill -9 $new_pids &>/dev/null
         echo "KILL!!!! ${new_pids}"
     fi
-    
+
     # 5. 撤销代理环境变量
     unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
     echo -e "${GREEN}[✓] 代理环境变量已清除${NC}"
-    
+
     return 0
+}
+function clash_test() {
+    # 测速节点延迟
+    if [[ "$*" != *"--help"* ]] && [[ "$*" != *"-h"* ]]; then
+        echo -e "${YELLOW}正在测速节点延迟...${NC}"
+    fi
+    if [ -f "$Server_Dir/tools/clash_test.sh" ]; then
+        cd "$Server_Dir" && bash "$Server_Dir/tools/clash_test.sh" "$@"
+    else
+        echo -e "${RED}错误：tools/clash_test.sh 脚本不存在${NC}"
+        return 1
+    fi
 }
 proxy_on
 # ===========proxy config end===========
@@ -856,7 +858,7 @@ EOF
         eval "cat << EOF
 $(cat /tmp/clash_functions_template_1)
 EOF" > /tmp/clash_functions
-        cat /tmp/clash_functions_template_2 >> /tmp_clash_functions
+        cat /tmp/clash_functions_template_2 >> /tmp/clash_functions
     fi
 
     # 在临时函数文件中将 #is_quiet 替换为 $is_quiet

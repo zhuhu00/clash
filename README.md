@@ -62,6 +62,7 @@
 - `clash_off`：终止当前 Mihomo 进程，并清空代理变量。
 - `health_check`：调用 `health_check.sh`，验证外网访问。
 - `clash_test`：调用 `tools/clash_test.sh`，并发测速所有节点并输出延迟最低的前 10。
+- `clash_switch`：测速并交互式切换节点。默认测试日本/美国/新加坡节点，展示 top 10，输入编号即可通过 API 热切换，无需重启服务。
 - `shutdown_system`：触发带双重确认的卸载流程，清理脚本、配置和日志。
 
 首次运行后脚本会提示这些命令，可按需再次执行。若后续修改了配置文件，请运行 `clash_on` 或 `source ./restart.sh` 让新配置生效。
@@ -75,7 +76,19 @@
 
 ## 配置与节点管理
 - 使用 Clash for Windows 获取订阅内容时，可右键 Profiles → Edit，然后把 `proxies`、`proxy-groups`、`rules` 段复制到 `conf/config.yaml`。需要图例可参考 `image/` 目录中的截图。
-- 更换节点时，调整 `proxy-groups` 中目标组的节点顺序，把希望优先使用的节点放在列表第一位，再执行 `clash_on`。
+- **切换节点（推荐）**：运行 `clash_switch`，测速完成后输入编号即可热切换，无需重启服务：
+
+  ```bash
+  # 默认测速日本/美国/新加坡节点，展示 top 10
+  clash_switch
+
+  # 只测日本节点
+  clash_switch -- --filter "日本"
+
+  # 自定义排除
+  clash_switch -- --exclude "香港|美国"
+  ```
+
 - 若希望同时保留模板配置，可在运行前导出 `ENABLE_TEMPLATE_MERGE=1`，脚本会用 `yq` 自动合并 `conf/template.yaml`。
 
 ## 排查建议

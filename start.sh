@@ -808,6 +808,14 @@ clash_test() {
         return 1
     fi
 }
+clash_switch() {
+    if [ -f "$Server_Dir/tools/clash_switch.sh" ]; then
+        cd "$Server_Dir" && bash "$Server_Dir/tools/clash_switch.sh" "$@"
+    else
+        echo -e "${RED}错误：tools/clash_switch.sh 脚本不存在${NC}"
+        return 1
+    fi
+}
 proxy_on
 # ===========proxy config end===========
 EOF
@@ -840,6 +848,14 @@ function clash_test() {
         cd "$Server_Dir" && bash "$Server_Dir/tools/clash_test.sh" "$@"
     else
         echo -e "${RED}错误：tools/clash_test.sh 脚本不存在${NC}"
+        return 1
+    fi
+}
+function clash_switch() {
+    if [ -f "$Server_Dir/tools/clash_switch.sh" ]; then
+        cd "$Server_Dir" && bash "$Server_Dir/tools/clash_switch.sh" "$@"
+    else
+        echo -e "${RED}错误：tools/clash_switch.sh 脚本不存在${NC}"
         return 1
     fi
 }

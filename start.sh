@@ -810,7 +810,7 @@ clash_test() {
 }
 clash_switch() {
     if [ -f "$Server_Dir/tools/clash_switch.sh" ]; then
-        cd "$Server_Dir" && bash "$Server_Dir/tools/clash_switch.sh" "$@"
+        (cd "$Server_Dir" && bash "$Server_Dir/tools/clash_switch.sh" "$@")
     else
         echo -e "${RED}错误：tools/clash_switch.sh 脚本不存在${NC}"
         return 1
@@ -853,7 +853,7 @@ function clash_test() {
 }
 function clash_switch() {
     if [ -f "$Server_Dir/tools/clash_switch.sh" ]; then
-        cd "$Server_Dir" && bash "$Server_Dir/tools/clash_switch.sh" "$@"
+        (cd "$Server_Dir" && bash "$Server_Dir/tools/clash_switch.sh" "$@")
     else
         echo -e "${RED}错误：tools/clash_switch.sh 脚本不存在${NC}"
         return 1

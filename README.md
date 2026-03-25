@@ -46,6 +46,10 @@
 	source ./start.sh
 	```
 
+	说明：这一步是在仓库目录内执行的初始化操作。后续注入到 shell 的 `proxy_on`、`clash_on`、`clash_test`、`clash_switch` 等命令可以在任意目录下直接运行，但它们会固定指向你本次执行 `source ./start.sh` 时所在的 Clash 安装目录。
+
+	说明：这一步是在仓库目录内执行的初始化操作。后续注入到 shell 的 `proxy_on`、`clash_on`、`clash_test`、`clash_switch` 等命令可以在任意目录下直接运行，但它们会固定指向你本次执行 `source ./start.sh` 时所在的 Clash 安装目录。
+
 ### `start.sh` 做了什么？
 - 清理历史遗留的代理函数，避免环境变量冲突。
 - 自动检测 CPU 架构，下载匹配的 Mihomo 二进制文件和 `yq` 工具。
@@ -55,7 +59,7 @@
 - 自动执行一次网络连通性测试，必要时临时开启代理。
 
 ## 自动注入的常用命令
-这些函数写入到当前用户的 shell 配置中，可随时调用：
+这些函数会在首次 `source ./start.sh` 后写入到当前用户的 shell 配置中。之后可在任意目录调用，但实际执行时会使用当前这份 Clash 仓库目录作为安装目录：
 - `proxy_on`：导出 HTTP(S) 代理环境变量，默认指向 `127.0.0.1:<Clash端口>`。
 - `proxy_off`：清除所有代理相关环境变量。
 - `clash_on`：执行 `restart.sh`，平滑重启 Mihomo 服务。
@@ -65,11 +69,11 @@
 - `clash_switch`：测速并交互式切换节点。默认测试日本/美国/新加坡节点，展示 top 10，输入编号即可通过 API 热切换，无需重启服务。
 - `shutdown_system`：触发带双重确认的卸载流程，清理脚本、配置和日志。
 
-首次运行后脚本会提示这些命令，可按需再次执行。若后续修改了配置文件，请运行 `clash_on` 或 `source ./restart.sh` 让新配置生效。
+首次运行后脚本会提示这些命令，可按需再次执行。若后续修改了配置文件，可在任意目录运行 `clash_on`，或回到仓库目录执行 `source ./restart.sh` 让新配置生效。若你把仓库迁移到新机器或新路径，请在新的仓库目录里重新执行一次 `source ./start.sh`，让这些命令重新绑定到新的安装位置。
 
 ## 常见操作
 - **查看监听端口**：`lsof -i -P -n | grep LISTEN | grep -E ':9090|:789[0-9]'`
-- **健康检查**：`health_check` 或 `source ./health_check.sh`
+- **健康检查**：任意目录运行 `health_check`；如果你当前就在仓库目录，也可以执行 `source ./health_check.sh`
 - **查看日志**：`tail -f logs/mihomo.log`
 - **访问 Dashboard**：浏览器打开 `http://<服务器IP>:9090/ui` 并使用 `.env` 中的 `CLASH_SECRET` 登录（留空则查看脚本输出）。
 - **验证外网**：`curl -L google.com`

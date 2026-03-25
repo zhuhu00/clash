@@ -100,7 +100,7 @@ fi
 # ---------- 测速 ----------
 echo -e "${YELLOW}[*] 正在测速...${NC}"
 
-test_output=$(cd "$PROJECT_DIR" && bash "$SCRIPT_DIR/clash_test.sh" --top "$TOP" --sort "${CLASH_TEST_ARGS[@]}" 2>/dev/null) || true
+test_output=$(bash "$SCRIPT_DIR/clash_test.sh" --top "$TOP" --sort "${CLASH_TEST_ARGS[@]}" 2>/dev/null) || true
 
 if [[ -z "$test_output" ]]; then
   echo -e "${RED}错误：测速无结果${NC}" >&2

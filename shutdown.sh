@@ -101,9 +101,10 @@ else
 fi
 
 # 从配置文件中删除函数和相关行
-functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check")
+functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check" "clash_on" "clash_off" "clash_test" "clash_switch")
 for func in "${functions_to_remove[@]}"; do
-  sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" "$SHELL_CONFIG_FILE"
+  sed -i -E "/^function[[:space:]]+${func}[[:space:]]*\(\)/,/^}$/d" "$SHELL_CONFIG_FILE"
+  sed -i -E "/^${func}[[:space:]]*\(\)/,/^}$/d" "$SHELL_CONFIG_FILE"
 done
 
 sed -i '/^# 开启系统代理/d; /^# 关闭系统代理/d; /^# 新增关闭系统函数/d; /^# 检查clash进程是否正常启动/d; /proxy_on/d; /^#.*proxy_on/d' "$SHELL_CONFIG_FILE"

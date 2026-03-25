@@ -390,7 +390,7 @@ else
 fi
 
 # 从配置文件中删除函数和相关行
-functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check" "clash_on" "clash_off" "clash_test")
+functions_to_remove=("proxy_on" "proxy_off" "shutdown_system" "health_check" "clash_on" "clash_off" "clash_test" "clash_switch")
 for func in "${functions_to_remove[@]}"; do
   # 删除bash风格的函数: function name() { ... }
   sed -i -E "/^function[[:space:]]+${func}[[:space:]]*()/,/^}$/d" "$SHELL_CONFIG_FILE"
@@ -802,7 +802,7 @@ clash_test() {
         echo -e "${YELLOW}正在测速节点延迟...${NC}"
     fi
     if [ -f "$Server_Dir/tools/clash_test.sh" ]; then
-        cd "$Server_Dir" && bash "$Server_Dir/tools/clash_test.sh" "$@"
+        bash "$Server_Dir/tools/clash_test.sh" "$@"
     else
         echo -e "${RED}错误：tools/clash_test.sh 脚本不存在${NC}"
         return 1
@@ -810,7 +810,7 @@ clash_test() {
 }
 clash_switch() {
     if [ -f "$Server_Dir/tools/clash_switch.sh" ]; then
-        (cd "$Server_Dir" && bash "$Server_Dir/tools/clash_switch.sh" "$@")
+        bash "$Server_Dir/tools/clash_switch.sh" "$@"
     else
         echo -e "${RED}错误：tools/clash_switch.sh 脚本不存在${NC}"
         return 1
@@ -845,7 +845,7 @@ function clash_test() {
         echo -e "${YELLOW}正在测速节点延迟...${NC}"
     fi
     if [ -f "$Server_Dir/tools/clash_test.sh" ]; then
-        cd "$Server_Dir" && bash "$Server_Dir/tools/clash_test.sh" "$@"
+        bash "$Server_Dir/tools/clash_test.sh" "$@"
     else
         echo -e "${RED}错误：tools/clash_test.sh 脚本不存在${NC}"
         return 1
@@ -853,7 +853,7 @@ function clash_test() {
 }
 function clash_switch() {
     if [ -f "$Server_Dir/tools/clash_switch.sh" ]; then
-        (cd "$Server_Dir" && bash "$Server_Dir/tools/clash_switch.sh" "$@")
+        bash "$Server_Dir/tools/clash_switch.sh" "$@"
     else
         echo -e "${RED}错误：tools/clash_switch.sh 脚本不存在${NC}"
         return 1

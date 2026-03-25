@@ -276,7 +276,7 @@ if [ $ERRORS -gt 0 ] || [ $WARNINGS -gt 0 ]; then
     
     if ! pgrep -f "clash-linux-amd64\|mihomo" > /dev/null; then
         echo "1. 启动 Clash 服务："
-        echo "   cd ./ && source ./start.sh"
+        echo "   source $SCRIPT_DIR/start.sh"
         echo ""
     fi
     

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 usage() {
   cat <<'EOF'
 Usage: tools/clash_test.sh [options]
@@ -27,7 +30,7 @@ Examples:
 EOF
 }
 
-CONFIG="conf/config.yaml"
+CONFIG="$PROJECT_DIR/conf/config.yaml"
 BASE=""
 TEST_URL=""
 TIMEOUT="5000"
@@ -72,7 +75,7 @@ if [[ ! -f "$CONFIG" ]]; then
   exit 1
 fi
 
-YQ="./bin/yq"
+YQ="$PROJECT_DIR/bin/yq"
 if [[ ! -x "$YQ" ]]; then
   YQ="yq"
 fi
